@@ -74,7 +74,7 @@ group_permissions=false
 if [ -z "$username" ] || [ -z "$password" ]; then
   log "Need username and password environment variables."
   err=1
-elif [ ! -z "$USERNAME_PATTERN" ]; then
+elif [ -n "$USERNAME_PATTERN" ]; then
   username_match=$(echo "$username" | sed -r "s/$USERNAME_PATTERN/x/")
   if [ "$username_match" != "x" ]; then
     log "Username '$username' has an invalid format."
@@ -93,8 +93,8 @@ curl --silent \
   "${AUTHELIA_DOMAIN}/api/verify?auth=basic"
 
 ## Extract user name and groups from temporary file
-homeassistant_name=$(cat "${TMP_FILE_NAME}" | grep remote-name | cut -d ' ' -f 2-)
-homeassistant_groups=$(cat "${TMP_FILE_NAME}" | grep remote-groups | cut -d ' ' -f 2-)
+homeassistant_name=$(grep remote-name < "${TMP_FILE_NAME}" | cut -d ' ' -f 2-)
+homeassistant_groups=$(grep remote-groups < "${TMP_FILE_NAME}" | cut -d ' ' -f 2-)
 
 ## Delete temporary file
 rm "${TMP_FILE_NAME}"
@@ -112,7 +112,7 @@ else
     ## Check if on the of the users group returned by server ,atches the specified home assistant group.
     ## If it has a match, grant group permissions
     for group in $(echo "${homeassistant_groups}" | sed -r 's/,/ /g'); do
-      if [ "${group}" == "${AUTHELIA_HOME_ASSISTANT_GROUP}" ]; then
+      if [ "${group}" = "${AUTHELIA_HOME_ASSISTANT_GROUP}" ]; then
         group_permissions=true
       fi
     done
@@ -122,7 +122,7 @@ else
   fi
 
   ## If group permissions are granted, echo the user name as expected by home assistant
-  if [ "${group_permissions}" == true ]; then
+  if [ "${group_permissions}" = true ]; then
     echo "name = ${homeassistant_name}"
   else
     ## Otherwise exit
